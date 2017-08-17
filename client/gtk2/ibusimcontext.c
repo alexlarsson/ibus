@@ -583,7 +583,7 @@ ibus_im_context_class_init (IBusIMContextClass *class)
 
     /* init bus object */
     if (_bus == NULL) {
-        _bus = ibus_bus_new_async ();
+        _bus = ibus_bus_new_async_client ();
 
         /* init the global fake context */
         if (ibus_bus_is_connected (_bus)) {
