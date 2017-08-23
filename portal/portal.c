@@ -575,6 +575,12 @@ name_owner_changed (GDBusConnection *connection,
     }
 }
 
+static void
+_bus_disconnected_cb (IBusBus            *ibusbus)
+{
+    g_main_loop_quit (loop);
+}
+
 gint
 main (gint argc, gchar **argv)
 {
@@ -605,6 +611,8 @@ main (gint argc, gchar **argv)
         g_printerr ("Not connected to the ibus bus\n");
         exit (1);
     }
+
+    g_signal_connect (ibus_bus, "disconnected", G_CALLBACK (_bus_disconnected_cb), NULL);
 
     loop = g_main_loop_new (NULL, FALSE);
 
