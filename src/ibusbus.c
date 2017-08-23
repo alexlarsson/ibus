@@ -514,7 +514,6 @@ ibus_bus_init (IBusBus *bus)
 {
     struct stat buf;
     gchar *path;
-    GFile *file;
 
     bus->priv = IBUS_BUS_GET_PRIVATE (bus);
 
@@ -542,12 +541,6 @@ ibus_bus_init (IBusBus *bus)
         }
     }
 
-    file = g_file_new_for_path (ibus_get_socket_path ());
-    bus->priv->monitor = g_file_monitor_file (file, 0, NULL, NULL);
-
-    g_signal_connect (bus->priv->monitor, "changed", (GCallback) _changed_cb, bus);
-
-    g_object_unref (file);
     g_free (path);
 }
 
@@ -593,6 +586,7 @@ ibus_bus_constructor (GType                  type,
                       GObjectConstructParam *params)
 {
     GObject *object;
+    GFile *file;
 
     /* share one IBusBus instance in whole application */
     if (_bus == NULL) {
@@ -602,6 +596,13 @@ ibus_bus_constructor (GType                  type,
         _bus = IBUS_BUS (object);
 
         _bus->priv->use_portal = ibus_bus_should_connect_portal (_bus);
+
+        if (!_bus->priv->use_portal) {
+            file = g_file_new_for_path (ibus_get_socket_path ());
+            _bus->priv->monitor = g_file_monitor_file (file, 0, NULL, NULL);
+            g_signal_connect (_bus->priv->monitor, "changed", (GCallback) _changed_cb, _bus);
+            g_object_unref (file);
+        }
 
         if (_bus->priv->connect_async)
             ibus_bus_connect_async (_bus);
