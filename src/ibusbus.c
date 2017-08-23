@@ -63,7 +63,7 @@ struct _IBusBusPrivate {
     gchar *unique_name;
     gboolean connect_async;
     gchar *bus_address;
-    gboolean portal;
+    gboolean use_portal;
     gboolean client_only;
     GCancellable *cancellable;
 };
@@ -357,7 +357,6 @@ _bus_connect_async_privileged_cb (GObject      *source_object,
 
     bus->priv->connection =
                 g_dbus_connection_new_for_address_finish (res, &error);
-    bus->priv->portal = FALSE;
 
     if (error != NULL) {
         g_warning ("Unable to connect to ibus: %s", error->message);
@@ -413,7 +412,6 @@ ibus_bus_connect_async_portal_cb (GObject *source_object,
     IBusBus *bus = user_data;
 
     bus->priv->connection = g_bus_get_finish (res, &error);
-    bus->priv->portal = TRUE;
 
     if (error != NULL) {
         g_warning ("Unable to connect to ibus: %s", error->message);
@@ -464,7 +462,7 @@ ibus_bus_should_connect_portal (IBusBus *bus)
 static void
 ibus_bus_connect_async (IBusBus *bus)
 {
-    if (ibus_bus_should_connect_portal (bus))
+    if (_bus->priv->use_portal)
         ibus_bus_connect_async_portal (bus);
     else
         ibus_bus_connect_async_privileged (bus);
@@ -602,6 +600,8 @@ ibus_bus_constructor (GType                  type,
         /* make bus object sink */
         g_object_ref_sink (object);
         _bus = IBUS_BUS (object);
+
+        _bus->priv->use_portal = ibus_bus_should_connect_portal (_bus);
 
         if (_bus->priv->connect_async)
             ibus_bus_connect_async (_bus);
@@ -902,7 +902,7 @@ ibus_bus_create_input_context_async (IBusBus            *bus,
     g_dbus_connection_call (bus->priv->connection,
             ibus_bus_get_service_name (bus),
             IBUS_PATH_IBUS,
-            bus->priv->portal ? IBUS_INTERFACE_PORTAL : IBUS_INTERFACE_IBUS,
+            bus->priv->use_portal ? IBUS_INTERFACE_PORTAL : IBUS_INTERFACE_IBUS,
             "CreateInputContext",
             g_variant_new ("(s)", client_name),
             G_VARIANT_TYPE("(o)"),
@@ -1562,7 +1562,7 @@ ibus_bus_get_connection (IBusBus *bus)
 const gchar *
 ibus_bus_get_service_name (IBusBus *bus)
 {
-    if (bus->priv->portal)
+    if (bus->priv->use_portal)
         return IBUS_SERVICE_PORTAL;
     return IBUS_SERVICE_IBUS;
 }
@@ -2482,7 +2482,7 @@ ibus_bus_call_sync (IBusBus            *bus,
     g_assert (member != NULL);
     g_return_val_if_fail (ibus_bus_is_connected (bus), NULL);
 
-    if (bus->priv->portal &&
+    if (bus->priv->use_portal &&
         g_strcmp0 (bus_name, IBUS_SERVICE_IBUS) == 0)  {
         bus_name = IBUS_SERVICE_PORTAL;
         if (g_strcmp0 (interface, IBUS_INTERFACE_IBUS) == 0)
@@ -2556,7 +2556,7 @@ ibus_bus_call_async (IBusBus            *bus,
     task = g_task_new (bus, cancellable, callback, user_data);
     g_task_set_source_tag (task, source_tag);
 
-    if (bus->priv->portal &&
+    if (bus->priv->use_portal &&
         g_strcmp0 (bus_name, IBUS_SERVICE_IBUS) == 0)  {
         bus_name = IBUS_SERVICE_PORTAL;
         if (g_strcmp0 (interface, IBUS_INTERFACE_IBUS) == 0)
