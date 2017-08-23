@@ -50,7 +50,7 @@ AM_LDADD = \
 ibus_dbus_built_sources = ibus-portal-dbus.c ibus-portal-dbus.h
 BUILT_SOURCES = $(ibus_dbus_built_sources)
 
-bin_PROGRAMS = ibus-portal
+libexec_PROGRAMS = ibus-portal
 ibus_portal_DEPENDENCIES = \
 	$(libibus) \
 	$(NULL)
@@ -79,7 +79,7 @@ dbusservice_DATA = $(dbusservice_in_files:.service.in=.service)
 dbusservicedir=${datadir}/dbus-1/services
 
 org.freedesktop.portal.IBus.service: org.freedesktop.portal.IBus.service.in
-	$(AM_V_GEN) sed -e "s|\@bindir\@|$(bindir)|" -e "s|\@xim_cli_arg\@|$(XIM_CLI_ARG)|" $< > $@.tmp && mv $@.tmp $@
+	$(AM_V_GEN) sed -e "s|\@libexecdir\@|$(libexecdir)|"  $< > $@.tmp && mv $@.tmp $@
 
 $(ibus_dbus_built_sources) : org.freedesktop.IBus.Portal.xml
 	$(AM_V_GEN) $(GDBUS_CODEGEN)                            \
